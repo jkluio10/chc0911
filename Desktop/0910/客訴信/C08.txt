@@ -1,0 +1,12 @@
+From: Alpine Ride GmbH / Sabine
+Subject: Wheel dish out of true on delivered bikes
+
+Hello,
+
+Three of the bikes we built up last week have rear wheels running out of true
+by more than 1.5 mm laterally. Our mechanic re-tensioned them but two went
+out again within a week.
+
+We suspect the dropout alignment. Could you check?
+
+Sabine

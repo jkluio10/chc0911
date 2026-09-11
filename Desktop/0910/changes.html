@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>資料品質問題與清理報告</title>
+<style>
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#0e0e12;color:#e8e8ec;padding:32px;line-height:1.6}
+  h1{color:#ff6a13;margin-bottom:8px;font-size:2rem}
+  h2{color:#ffaa55;margin-top:32px;border-bottom:1px solid #2a2a35;padding-bottom:8px}
+  .subtitle{color:#888899;margin-bottom:32px}
+  table{width:100%;border-collapse:collapse;margin:16px 0;background:#18181f;border-radius:8px;overflow:hidden}
+  th,td{padding:12px 16px;text-align:left;border-bottom:1px solid #2a2a35;font-size:.9rem}
+  th{background:#22222c;color:#ff6a13;font-weight:600}
+  tr:last-child td{border-bottom:none}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.75rem;background:#ff6a1333;color:#ff6a13}
+  .file-box{background:#18181f;border:1px solid #2a2a35;border-radius:8px;padding:20px;margin:16px 0}
+</style>
+</head>
+<body>
+  <h1>資料品質問題與清理報告</h1>
+  <div class="subtitle">捷輪工業 2026 年 6 月資料集清理與轉換說明</div>
+
+  <section>
+    <h2>一、 發現的資料品質問題總覽</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>檔案名稱</th>
+          <th>問題欄位</th>
+          <th>估計筆數</th>
+          <th>問題類別</th>
+          <th>說明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>資料盤點表_未完成.csv</code></td>
+          <td>負責人、更新頻率、已知問題、格式</td>
+          <td>約 25 筆 (全表)</td>
+          <td><span class="badge">缺失值 / 格式不一致</span></td>
+          <td>負責人與頻率空白、格式出現「—」。清理時已補上預設值。</td>
+        </tr>
+        <tr>
+          <td><code>生產日報_2026-06.csv</code></td>
+          <td>日期、機台編號、停機原因</td>
+          <td>約 363 筆 (全表)</td>
+          <td><span class="badge">格式不一致 / 缺失值</span></td>
+          <td>日期格式混雜（"0629"、"6月1日"、"2026/6/20"）；機台名稱不一（"四號機" vs "CNC04"）；停機原因大量空白。</td>
+        </tr>
+        <tr>
+          <td><code>產線檢討會議_逐字稿.txt</code></td>
+          <td>全文 / 標頭說明</td>
+          <td>約 169 行</td>
+          <td><span class="badge">轉寫雜訊 / 缺少結構</span></td>
+          <td>包含錄音自動轉寫說明、會議標頭及大量空白行。</td>
+        </tr>
+        <tr>
+          <td><code>交接班記錄_2026-06.txt</code></td>
+          <td>全文 / 標頭說明</td>
+          <td>約 113 行</td>
+          <td><span class="badge">轉寫雜訊 / 缺少結構</span></td>
+          <td>包含手寫謄打說明及分隔線。</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>二、 資料清理流程圖</h2>
+    <div class="file-box" style="text-align:center;overflow-x:auto;">
+      <svg width="800" height="200" viewBox="0 0 800 200" style="max-width:100%;height:auto;font-family:'Segoe UI',Arial,sans-serif;">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ff6a13"/>
+          </marker>
+        </defs>
+        
+        <!-- Step 1: Raw Data -->
+        <rect x="20" y="35" width="160" height="130" rx="8" fill="#22222c" stroke="#2a2a35" stroke-width="2"/>
+        <text x="100" y="65" fill="#ff6a13" font-weight="600" font-size="14" text-anchor="middle">原始髒資料</text>
+        <text x="100" y="90" fill="#e8e8ec" font-size="11" text-anchor="middle">• 盤點表.csv</text>
+        <text x="100" y="112" fill="#e8e8ec" font-size="11" text-anchor="middle">• 生產日報.csv</text>
+        <text x="100" y="134" fill="#e8e8ec" font-size="11" text-anchor="middle">• 會議與交接記錄.txt</text>
+
+        <!-- Arrow 1 -->
+        <line x1="185" y1="100" x2="255" y2="100" stroke="#ff6a13" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <!-- Step 2: Analysis & Processing -->
+        <rect x="260" y="35" width="220" height="130" rx="8" fill="#22222c" stroke="#ff6a13" stroke-width="1.5"/>
+        <text x="370" y="65" fill="#ff6a13" font-weight="600" font-size="14" text-anchor="middle">品質檢核與轉換</text>
+        <text x="370" y="90" fill="#e8e8ec" font-size="11" text-anchor="middle">1. 日期統一 (YYYY-MM-DD)</text>
+        <text x="370" y="112" fill="#e8e8ec" font-size="11" text-anchor="middle">2. 機台編號標準化 (CNC01-06)</text>
+        <text x="370" y="134" fill="#e8e8ec" font-size="11" text-anchor="middle">3. 缺值填補與去除逐字稿雜訊</text>
+
+        <!-- Arrow 2 -->
+        <line x1="485" y1="100" x2="555" y2="100" stroke="#ff6a13" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <!-- Step 3: Cleaned Output -->
+        <rect x="560" y="35" width="210" height="130" rx="8" fill="#22222c" stroke="#2a2a35" stroke-width="2"/>
+        <text x="665" y="65" fill="#ffaa55" font-weight="600" font-size="14" text-anchor="middle">產出清乾淨檔案</text>
+        <text x="665" y="90" fill="#e8e8ec" font-size="11" text-anchor="middle">• *_cleaned.csv</text>
+        <text x="665" y="112" fill="#e8e8ec" font-size="11" text-anchor="middle">• *_cleaned.txt</text>
+        <text x="665" y="134" fill="#e8e8ec" font-size="11" text-anchor="middle">• changes.html</text>
+      </svg>
+    </div>
+  </section>
+
+  <section>
+    <h2>三、 清理後的檔案輸出</h2>
+    <div class="file-box">
+      <ul>
+        <li><strong>資料盤點表_未完成_cleaned.csv</strong>：已填補空白欄位並修正格式符號。</li>
+        <li><strong>生產日報_2026-06_cleaned.csv</strong>：日期已標準化為 <code>YYYY-MM-DD</code>，機台編號統一為 <code>CNC01</code>~<code>CNC06</code>，停機原因空值填為「未填」。</li>
+        <li><strong>產線檢討會議_逐字稿_cleaned.txt</strong>：已去除錄音說明與空白雜訊行。</li>
+        <li><strong>交接班記錄_2026-06_cleaned.txt</strong>：已去除標頭說明與分隔線。</li>
+      </ul>
+    </div>
+  </section>
+</body>
+</html>
