@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自行車輪組結構解析</title>
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0e0e12;--surface:#18181f;--border:#2a2a35;
+    --orange:#ff6a13;--orange-dim:#ff6a1344;--orange-glow:#ff6a1366;
+    --text:#e8e8ec;--text-dim:#888899;
+  }
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    min-height:100vh;overflow-x:hidden;
+  }
+
+  /* header */
+  header{
+    text-align:center;padding:48px 24px 24px;
+    background:linear-gradient(180deg,#14141a 0%,var(--bg) 100%);
+    border-bottom:1px solid var(--border);
+  }
+  header h1{
+    font-size:clamp(1.6rem,4vw,2.6rem);font-weight:700;letter-spacing:2px;
+    background:linear-gradient(135deg,var(--orange),#ffaa55);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  header p{color:var(--text-dim);margin-top:8px;font-size:.95rem;letter-spacing:1px}
+
+  /* main layout */
+  .main{display:flex;justify-content:center;align-items:flex-start;gap:48px;
+    padding:48px 24px 80px;flex-wrap:wrap;max-width:1200px;margin:0 auto}
+
+  /* wheel svg area */
+  .wheel-wrap{position:relative;flex:0 0 520px;max-width:100%}
+  .wheel-svg{width:100%;height:auto;display:block}
+
+  /* parts list */
+  .parts{flex:1 1 340px;max-width:480px;display:flex;flex-direction:column;gap:14px}
+  .part-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:16px 20px;cursor:default;transition:all .25s;
+    position:relative;overflow:hidden;
+  }
+  .part-card::before{
+    content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:var(--orange);opacity:0;transition:opacity .25s;
+  }
+  .part-card:hover{border-color:var(--orange);transform:translateX(4px)}
+  .part-card:hover::before{opacity:1}
+  .part-card .tag{
+    display:inline-block;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;
+    color:var(--orange);background:var(--orange-dim);padding:2px 8px;border-radius:4px;
+    margin-bottom:6px;
+  }
+  .part-card h3{font-size:1rem;font-weight:600;margin-bottom:4px}
+  .part-card p{font-size:.82rem;color:var(--text-dim);line-height:1.55}
+
+  /* highlight class for svg hover */
+  .hl{transition:all .25s;filter:none}
+  .hl.active{filter:drop-shadow(0 0 8px var(--orange)) drop-shadow(0 0 16px var(--orange-glow))}
+
+  /* tooltip */
+  .tooltip{
+    position:fixed;pointer-events:none;z-index:999;
+    background:#1e1e28;border:1px solid var(--orange);border-radius:8px;
+    padding:12px 16px;max-width:260px;
+    box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 12px var(--orange-dim);
+    opacity:0;transition:opacity .18s;font-size:.82rem;line-height:1.55;color:var(--text);
+  }
+  .tooltip.show{opacity:1}
+  .tooltip .tt-title{font-weight:700;color:var(--orange);margin-bottom:4px;font-size:.88rem}
+
+  /* legend */
+  .legend{
+    position:fixed;bottom:20px;right:20px;z-index:100;
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:14px 18px;min-width:180px;
+  }
+  .legend h4{font-size:.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-dim);margin-bottom:8px}
+  .legend-item{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.78rem;color:var(--text)}
+  .legend-item:last-child{margin-bottom:0}
+  .legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+  /* subtle grid background */
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;
+    background-image:
+      linear-gradient(var(--border) 1px,transparent 1px),
+      linear-gradient(90deg,var(--border) 1px,transparent 1px);
+    background-size:60px 60px;opacity:.15;
+  }
+
+  /* specs bar */
+  .specs{
+    display:flex;gap:16px;justify-content:center;flex-wrap:wrap;
+    padding:0 24px 48px;max-width:900px;margin:0 auto;
+  }
+  .spec{
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:18px 24px;text-align:center;flex:1 1 160px;min-width:140px;
+  }
+  .spec .val{font-size:1.5rem;font-weight:700;color:var(--orange)}
+  .spec .label{font-size:.75rem;color:var(--text-dim);margin-top:4px;letter-spacing:.5px}
+
+  @media(max-width:900px){
+    .main{flex-direction:column;align-items:center}
+    .wheel-wrap{flex:0 0 auto;width:min(100%,440px)}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>自行車輪組結構解析</h1>
+  <p>BIKE WHEELSET COMPONENT BREAKDOWN</p>
+</header>
+
+<!-- specs -->
+<div class="specs">
+  <div class="spec"><div class="val">700c</div><div class="label">標準輪徑</div></div>
+  <div class="spec"><div class="val">24H</div><div class="label">輻條孔數</div></div>
+  <div class="spec"><div class="val">1,420g</div><div class="label">碳纖輪組重量</div></div>
+  <div class="spec"><div class="val">Climb</div><div class="label">適用場景</div></div>
+</div>
+
+<div class="main">
+  <!-- SVG wheel -->
+  <div class="wheel-wrap">
+    <svg class="wheel-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="hubG" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#3a3a48"/>
+          <stop offset="100%" stop-color="#1a1a22"/>
+        </radialGradient>
+        <radialGradient id="rimG" cx="50%" cy="50%" r="50%">
+          <stop offset="85%" stop-color="transparent"/>
+          <stop offset="92%" stop-color="#2a2a35"/>
+          <stop offset="100%" stop-color="#1a1a22"/>
+        </radialGradient>
+      </defs>
+
+      <!-- rim (outer circle) -->
+      <g class="hl" data-part="rim">
+        <circle cx="250" cy="250" r="220" fill="none" stroke="#3a3a48" stroke-width="26" opacity=".9"/>
+        <circle cx="250" cy="250" r="220" fill="none" stroke="url(#rimG)" stroke-width="26"/>
+        <circle cx="250" cy="250" r="233" fill="none" stroke="#ff6a13" stroke-width="1" opacity=".3"/>
+        <circle cx="250" cy="250" r="207" fill="none" stroke="#ff6a13" stroke-width="1" opacity=".3"/>
+        <!-- tire label area -->
+      </g>
+
+      <!-- tire on rim -->
+      <g class="hl" data-part="tire">
+        <circle cx="250" cy="250" r="237" fill="none" stroke="#22222c" stroke-width="14"/>
+        <circle cx="250" cy="250" r="244" fill="none" stroke="#2a2a35" stroke-width="1" opacity=".5"/>
+      </g>
+
+      <!-- spokes - radial pattern -->
+      <g class="hl" data-part="spokes" opacity=".85">
+        <!-- 24 spokes arranged in crossing pattern -->
+        <line x1="250" y1="250" x2="250" y2="30" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="365" y2="42" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="458" y2="135" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="470" y2="250" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="458" y2="365" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="365" y2="458" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="250" y2="470" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="135" y2="458" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="42" y2="365" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="30" y2="250" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="42" y2="135" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="135" y2="42" stroke="#555566" stroke-width="1.2"/>
+        <!-- crossing set -->
+        <line x1="250" y1="250" x2="310" y2="30" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="440" y2="190" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="470" y2="310" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="440" y2="440" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="310" y2="470" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="190" y2="470" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="60" y2="440" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="30" y2="310" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="60" y2="190" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="190" y2="30" stroke="#555566" stroke-width="1.2"/>
+        <line x1="250" y1="250" x2="60" y2="250" stroke="#555566" stroke-width="0" />
+      </g>
+
+      <!-- valve -->
+      <g class="hl" data-part="valve">
+        <rect x="247" y="12" width="6" height="18" rx="3" fill="#ff6a13" opacity=".9"/>
+        <circle cx="250" cy="10" r="3" fill="none" stroke="#ff6a13" stroke-width="1"/>
+      </g>
+
+      <!-- nipples at rim-spoke junction -->
+      <g class="hl" data-part="nipples" opacity=".7">
+        <circle cx="250" cy="28" r="3" fill="#aaa"/>
+        <circle cx="365" cy="40" r="3" fill="#aaa"/>
+        <circle cx="460" cy="133" r="3" fill="#aaa"/>
+        <circle cx="472" cy="250" r="3" fill="#aaa"/>
+        <circle cx="460" cy="367" r="3" fill="#aaa"/>
+        <circle cx="365" cy="460" r="3" fill="#aaa"/>
+        <circle cx="250" cy="472" r="3" fill="#aaa"/>
+        <circle cx="135" cy="460" r="3" fill="#aaa"/>
+        <circle cx="40" cy="367" r="3" fill="#aaa"/>
+        <circle cx="28" cy="250" r="3" fill="#aaa"/>
+        <circle cx="40" cy="133" r="3" fill="#aaa"/>
+        <circle cx="135" cy="40" r="3" fill="#aaa"/>
+      </g>
+
+      <!-- hub shell -->
+      <g class="hl" data-part="hub">
+        <circle cx="250" cy="250" r="36" fill="url(#hubG)" stroke="#4a4a58" stroke-width="2"/>
+        <circle cx="250" cy="250" r="22" fill="#0e0e12" stroke="#3a3a48" stroke-width="1.5"/>
+        <!-- axle ends -->
+        <circle cx="250" cy="250" r="8" fill="#2a2a35" stroke="#ff6a13" stroke-width="1"/>
+        <circle cx="250" cy="250" r="3" fill="#ff6a13" opacity=".6"/>
+        <!-- hub flange left -->
+        <ellipse cx="232" cy="250" rx="6" ry="28" fill="none" stroke="#555566" stroke-width="1" opacity=".5"/>
+        <!-- hub flange right -->
+        <ellipse cx="268" cy="250" rx="6" ry="28" fill="none" stroke="#555566" stroke-width="1" opacity=".5"/>
+      </g>
+
+      <!-- quick release lever hint -->
+      <g class="hl" data-part="axle">
+        <line x1="250" y1="250" x2="250" y2="222" stroke="#ff6a13" stroke-width="2" stroke-linecap="round" opacity=".4"/>
+        <line x1="250" y1="250" x2="250" y2="278" stroke="#ff6a13" stroke-width="2" stroke-linecap="round" opacity=".4"/>
+      </g>
+
+      <!-- decorative rings -->
+      <circle cx="250" cy="250" r="195" fill="none" stroke="#ff6a13" stroke-width=".5" opacity=".12" stroke-dasharray="4 6"/>
+      <circle cx="250" cy="250" r="160" fill="none" stroke="#ff6a13" stroke-width=".5" opacity=".08" stroke-dasharray="2 8"/>
+    </svg>
+  </div>
+
+  <!-- parts list -->
+  <div class="parts">
+    <div class="part-card" data-target="rim">
+      <div class="tag">結構</div>
+      <h3>輪圈 Rim</h3>
+      <p>輪組主要結構，承載輪胎並分散地面衝擊力。材質分為鋁合金與碳纖維，碳纖維更輕且剛性更佳，為競賽級首選。</p>
+    </div>
+    <div class="part-card" data-target="tire">
+      <div class="tag">接觸</div>
+      <h3>外胎 Tire</h3>
+      <p>與地面直接接觸的部件，影響抓地力與滾動阻力。依用途分為公路光頭胎、 gravel 半光胎與越野顆粒胎。</p>
+    </div>
+    <div class="part-card" data-target="spokes">
+      <div class="tag">連接</div>
+      <h3>輻條 Spokes</h3>
+      <p>連接輪圈與花鼓的金屬絲，承受張力並分散負荷。編法有直拉、交叉（2x/3x）、放射等，影響剛性與重量。</p>
+    </div>
+    <div class="part-card" data-target="hub">
+      <div class="tag">核心</div>
+      <h3>花鼓 Hub</h3>
+      <p>輪組的中心軸承結構，內含培林（軸承）與塔基。影響潤滑度、響應速度與維護週期，是性能關鍵。</p>
+    </div>
+    <div class="part-card" data-target="nipples">
+      <div class="tag">微調</div>
+      <h3>輻條帽 Nipples</h3>
+      <p>位於輻條與輪圈交接處，用來調整每根輻條的張力。正確的張力校準（True）確保輪組圓正不偏擺。</p>
+    </div>
+    <div class="part-card" data-target="valve">
+      <div class="tag">維護</div>
+      <h3>氣嘴 Valve</h3>
+      <p>充氣入口，分為法式嘴（Presta）與美式嘴（Schrader）。公路車多用法式嘴，口徑較細、氣密性更好。</p>
+    </div>
+    <div class="part-card" data-target="axle">
+      <div class="tag">固定</div>
+      <h3>軸心 Axle</h3>
+      <p>貫穿花鼓中心的金屬軸，透過快拆或桶軸系統將輪組固定於車架。桶軸（Thru-Axle）提供更高的側向剛性。</p>
+    </div>
+  </div>
+</div>
+
+<!-- legend -->
+<div class="legend">
+  <h4>圖例 Legend</h4>
+  <div class="legend-item"><div class="legend-dot" style="background:#3a3a48"></div>結構部件</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#555566"></div>輻條系統</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ff6a13"></div>關鍵/標示</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div>金屬配件</div>
+  <div class="legend-item"><div class="legend-dot" style="border:1px solid #ff6a13;background:transparent"></div>懸停高亮</div>
+</div>
+
+<!-- tooltip -->
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+(function(){
+  const tooltip = document.getElementById('tooltip');
+
+  const info = {
+    rim:{title:'輪圈 Rim',desc:'主要結構，承載外胎。碳纖維材質重量僅約 420g（單圈），鋁合金約 480g。'},
+    tire:{title:'外胎 Tire',desc:'與地面接觸，寬度 23-32mm 不等。真空胎（Tubeless）可降低爆胎風險。'},
+    spokes:{title:'輻條 Spokes',desc:'共 24 根，14g 規格直徑 2.0mm。交叉編法提升扭矩傳遞效率。'},
+    hub:{title:'花鼓 Hub',desc:'內置陶瓷培林，潤滑係數低。塔基支援 Shimano / SRAM 12 速飛輪。'},
+    nipples:{title:'輻條帽 Nipples',desc:'鋁合金材質，減重約 30%（相比黃銅）。旋轉於輪圈側便於調校。'},
+    valve:{title:'氣嘴 Valve',desc:'法式嘴 Presta，長度 42mm / 60mm，適配不同輪圈深度。'},
+    axle:{title:'軸心 Axle',desc:'12×142mm 桶軸規格，扭力建議 8-10 Nm。'}
+  };
+
+  function showTip(e, html){
+    tooltip.innerHTML = html;
+    tooltip.classList.add('show');
+    move(e);
+  }
+  function hideTip(){tooltip.classList.remove('show')}
+  function move(e){
+    let x=e.clientX+16, y=e.clientY+16;
+    if(x+270>window.innerWidth) x=e.clientX-270;
+    if(y+120>window.innerHeight) y=e.clientY-120;
+    tooltip.style.left=x+'px';
+    tooltip.style.top=y+'px';
+  }
+
+  // SVG parts hover
+  document.querySelectorAll('.hl').forEach(g=>{
+    g.style.cursor='pointer';
+    g.addEventListener('mouseenter',e=>{
+      g.classList.add('active');
+      const d=info[g.dataset.part];
+      if(d) showTip(e,'<div class="tt-title">'+d.title+'</div>'+d.desc);
+    });
+    g.addEventListener('mousemove',move);
+    g.addEventListener('mouseleave',()=>{
+      g.classList.remove('active');hideTip();
+    });
+  });
+
+  // cards hover also highlights SVG
+  document.querySelectorAll('.part-card').forEach(card=>{
+    const target=card.dataset.target;
+    card.addEventListener('mouseenter',e=>{
+      const g=document.querySelector('.hl[data-part="'+target+'"]');
+      if(g) g.classList.add('active');
+      const d=info[target];
+      if(d) showTip(e,'<div class="tt-title">'+d.title+'</div>'+d.desc);
+    });
+    card.addEventListener('mousemove',move);
+    card.addEventListener('mouseleave',()=>{
+      const g=document.querySelector('.hl[data-part="'+target+'"]');
+      if(g) g.classList.remove('active');
+      hideTip();
+    });
+  });
+})();
+</script>
+</body>
+</html>
